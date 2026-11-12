@@ -18,5 +18,7 @@ app.get('/api/users', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
+app.get('/', (req, res) => {
+  res.send('Azure Container App is running and connected to PostgreSQL!');
+});
 app.listen(port, () => console.log(`App running on port ${port}`));
