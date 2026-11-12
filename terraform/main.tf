@@ -68,6 +68,10 @@ resource "azurerm_postgresql_flexible_server" "db" {
   sku_name               = "B_Standard_B2s"
   public_network_access_enabled = false
   depends_on             = [azurerm_private_dns_zone_virtual_network_link.db_dns_link]
+
+  lifecycle {
+    ignore_changes = [zone, high_availability]
+  }
 }
 
 resource "azurerm_container_registry" "acr" {
@@ -90,6 +94,18 @@ resource "azurerm_container_app" "api" {
   resource_group_name          = azurerm_resource_group.rg.name
   revision_mode                = "Single"
 
+
+  secret {
+    name  = "acr-password"
+    value = azurerm_container_registry.acr.admin_password
+  }
+
+  registry {
+    server               = azurerm_container_registry.acr.login_server
+    username             = azurerm_container_registry.acr.admin_username
+    password_secret_name = "acr-password"
+  }
+
   ingress {
     allow_insecure_connections = false
     external_enabled           = true
@@ -103,7 +119,7 @@ resource "azurerm_container_app" "api" {
   template {
     container {
       name   = "api-container"
-      image  = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
+      image  = "${azurerm_container_registry.acr.login_server}/api-service:latest"
       cpu    = 0.25
       memory = "0.5Gi"
       env {
